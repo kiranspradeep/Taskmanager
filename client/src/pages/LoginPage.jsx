@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -8,15 +8,41 @@ export default function LoginPage() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login attempt:", formData);
-    // TODO: Call backend API for login
+  console.log(formData,"full formdata");
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+        
+        
+      });
+      //log formfada
+        console.log(formData,"formdata");
+
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem("token", data.token); // ✅ store token
+        alert("Login successful!");
+        navigate("/dashboard"); // ✅ redirect
+      } else {
+        alert(data.message || "Invalid credentials");
+      }
+    } catch (error) {
+      console.error(error);
+      console.log(error);
+      alert("Something went wrong. Try again!");
+    }
   };
 
   return (

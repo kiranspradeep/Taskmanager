@@ -3,6 +3,8 @@ const User = require('../models/User');
 
 const auth = async (req, res, next) => {
   try {
+    console.log("hii pundahh");
+    
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if(!token) return res.status(401).json({ message: 'Unauthorized' });
     
@@ -10,6 +12,8 @@ const auth = async (req, res, next) => {
     req.user = await User.findById(decoded.id).select('-password');
     next();
   } catch(err) {
+    console.log(err);
+    
     res.status(401).json({ message: 'Unauthorized' });
   }
 };
