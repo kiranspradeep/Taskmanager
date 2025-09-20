@@ -1,35 +1,43 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import Sidebar from "../components/Sidebar";
-import { FaUserCircle, FaPlus } from "react-icons/fa";
+import { FaHome, FaPlusCircle, FaChartLine, FaUserCircle, FaSignOutAlt } from "react-icons/fa";
+import TaskList from "../components/TaskList";
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeItem, setActiveItem] = useState("home");
+  const [activeTab, setActiveTab] = useState("home");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newTask, setNewTask] = useState({ title: "", description: "" });
+  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "Medium", dueDate: "" });
 
+  // Fetch user and tasks
   useEffect(() => {
     const fetchDashboard = async () => {
       const token = localStorage.getItem("token");
-      if (!token) return (window.location.href = "/login");
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
 
       try {
-        const res = await axios.get("http://localhost:5000/api/dashboard", {
+        setLoading(true);
+
+        // User
+        const resUser = await axios.get("http://localhost:5000/api/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setUser(res.data.user);
+        if (resUser?.data?.user) setUser(resUser.data.user);
+        else window.location.href = "/login";
 
-        setTasks([
-          { id: 1, title: "Learn React", completed: false },
-          { id: 2, title: "Build Dashboard", completed: true },
-          { id: 3, title: "Setup Backend", completed: false },
-        ]);
+        // Tasks
+        const resTasks = await axios.get("http://localhost:5000/api/tasks", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setTasks(resTasks?.data || []);
       } catch (err) {
         console.error(err);
-        window.location.href = "/login";
+        if (err.response?.status === 401) window.location.href = "/login";
       } finally {
         setLoading(false);
       }
@@ -38,35 +46,61 @@ export default function DashboardPage() {
     fetchDashboard();
   }, []);
 
+  // Logout
   const handleLogout = () => {
     localStorage.removeItem("token");
     window.location.href = "/login";
   };
 
+  // Modal
   const handleAddTask = () => setIsModalOpen(true);
-
   const handleModalClose = () => {
     setIsModalOpen(false);
-    setNewTask({ title: "", description: "" });
+    setNewTask({ title: "", description: "", priority: "Medium", dueDate: "" });
   };
 
-  const handleTaskChange = (e) => {
-    setNewTask({ ...newTask, [e.target.name]: e.target.value });
-  };
+  const handleTaskChange = (e) => setNewTask({ ...newTask, [e.target.name]: e.target.value });
 
-  const handleTaskSubmit = (e) => {
+  const handleTaskSubmit = async (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return alert("Task title is required!");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post("http://localhost:5000/api/tasks", newTask, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTasks([res.data, ...tasks]);
+      handleModalClose();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-    // Create a new task and add to state
-    const task = {
-      id: tasks.length + 1,
-      title: newTask.title,
-      description: newTask.description,
-      completed: false,
-    };
-    setTasks([task, ...tasks]);
-    handleModalClose();
+  const toggleTask = async (id) => {
+    const task = tasks.find((t) => t._id === id);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.put(
+        `http://localhost:5000/api/tasks/${id}`,
+        { completed: !task.completed },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setTasks(tasks.map((t) => (t._id === id ? res.data : t)));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteTask = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/api/tasks/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTasks(tasks.filter((t) => t._id !== id));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (loading) return <div className="text-center mt-10 text-gray-600">Loading...</div>;
@@ -74,54 +108,69 @@ export default function DashboardPage() {
   const pendingTasks = tasks.filter((t) => !t.completed).length;
   const completedTasks = tasks.filter((t) => t.completed).length;
 
+  const navItems = [
+    { id: "home", label: "Home", icon: <FaHome /> },
+    { id: "addTask", label: "Add Task", icon: <FaPlusCircle />, onClick: handleAddTask },
+    { id: "progress", label: "Progression", icon: <FaChartLine /> },
+    { id: "profile", label: "Profile", icon: <FaUserCircle /> },
+    { id: "logout", label: "Logout", icon: <FaSignOutAlt />, onClick: handleLogout },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar onLogout={handleLogout} activeItem={activeItem} setActiveItem={setActiveItem} />
-
-      {/* Main Content */}
-      <main className="flex-1 p-6 lg:ml-64 transition-all duration-300">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-          <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleAddTask}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-            >
-              <FaPlus />
-              Add Task
-            </button>
-            <FaUserCircle className="text-3xl text-gray-700" />
-          </div>
-        </div>
-
-        {/* Stats Boxes */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white shadow-md rounded-xl p-6 text-center hover:scale-105 transition">
-            <h3 className="text-xl font-semibold text-gray-700">Pending Tasks</h3>
-            <p className="text-3xl font-bold text-yellow-500 mt-2">{pendingTasks}</p>
-          </div>
-          <div className="bg-white shadow-md rounded-xl p-6 text-center hover:scale-105 transition">
-            <h3 className="text-xl font-semibold text-gray-700">Completed Tasks</h3>
-            <p className="text-3xl font-bold text-green-500 mt-2">{completedTasks}</p>
-          </div>
-        </div>
-
-        {/* Task List */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className={`bg-white shadow-md rounded-xl p-5 flex flex-col justify-between transition hover:shadow-xl hover:scale-105`}
-            >
-              <h4 className="font-semibold text-lg text-gray-800">{task.title}</h4>
-              <p className="mt-2 text-gray-600">{task.description}</p>
-              <p className={`mt-2 font-medium ${task.completed ? "text-green-500" : "text-yellow-500"}`}>
-                {task.completed ? "Completed ✅" : "Pending ⏳"}
-              </p>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
+      {/* Navbar */}
+      <nav className="bg-indigo-900 bg-opacity-70 text-white px-6 py-4 flex justify-between items-center backdrop-blur-md rounded-b-lg">
+        <h1 className="text-2xl font-bold">Task Manager</h1>
+        <ul className="flex gap-6">
+          {navItems.map((item) => (
+            <li key={item.id}>
+              <button
+                onClick={() => {
+                  setActiveTab(item.id);
+                  item.onClick && item.onClick();
+                }}
+                className={`flex items-center gap-2 px-3 py-1 rounded-md hover:bg-indigo-700 transition ${
+                  activeTab === item.id ? "bg-indigo-800" : ""
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            </li>
           ))}
+        </ul>
+      </nav>
+
+      {/* Main content */}
+      <main className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left Welcome Section */}
+        <div className="col-span-1 bg-white/80 shadow-lg rounded-xl p-6 flex flex-col items-center backdrop-blur-md sticky top-6 h-max">
+          <h2 className="text-2xl font-bold mb-2">Welcome, {user?.name}!</h2>
+          <p className="text-gray-700 text-center">Manage your tasks efficiently.</p>
+          <button
+            onClick={handleAddTask}
+            className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+          >
+            Add Task
+          </button>
+        </div>
+
+        {/* Right Task Section */}
+        <div className="col-span-3 flex flex-col gap-4">
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white/80 shadow-lg rounded-xl p-4 text-center backdrop-blur-md">
+              <h3 className="font-semibold text-gray-700">Pending Tasks</h3>
+              <p className="text-2xl font-bold text-yellow-500">{pendingTasks}</p>
+            </div>
+            <div className="bg-white/80 shadow-lg rounded-xl p-4 text-center backdrop-blur-md">
+              <h3 className="font-semibold text-gray-700">Completed Tasks</h3>
+              <p className="text-2xl font-bold text-green-500">{completedTasks}</p>
+            </div>
+          </div>
+
+          {/* Task Grid */}
+          <TaskList tasks={tasks} toggleTask={toggleTask} deleteTask={deleteTask} />
         </div>
       </main>
 
@@ -146,7 +195,6 @@ export default function DashboardPage() {
                   onChange={handleTaskChange}
                   required
                   className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                  placeholder="Task title"
                 />
               </div>
               <div>
@@ -156,8 +204,32 @@ export default function DashboardPage() {
                   value={newTask.description}
                   onChange={handleTaskChange}
                   className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                  placeholder="Task description"
                 ></textarea>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700">Priority</label>
+                  <select
+                    name="priority"
+                    value={newTask.priority}
+                    onChange={handleTaskChange}
+                    className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                  >
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700">Due Date</label>
+                  <input
+                    type="date"
+                    name="dueDate"
+                    value={newTask.dueDate}
+                    onChange={handleTaskChange}
+                    className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                  />
+                </div>
               </div>
               <button
                 type="submit"
