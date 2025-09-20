@@ -1,60 +1,36 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import api from "../utils/api"; // ✅ centralized axios
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-        
-        
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        localStorage.setItem("token", data.token); // ✅ store token
-        alert("Login successful!");
-        navigate("/dashboard"); // ✅ redirect
-      } else {
-        alert(data.message || "Invalid credentials");
-      }
+      const res = await api.post("/auth/login", formData);
+      localStorage.setItem("token", res.data.token);
+      alert("Login successful!");
+      navigate("/dashboard");
     } catch (error) {
       console.error(error);
-      console.log(error);
-      alert("Something went wrong. Try again!");
+      alert(error.response?.data?.message || "Invalid credentials or something went wrong");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
       <div className="bg-white shadow-lg rounded-2xl w-full max-w-md p-8">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
-          Welcome Back 👋
-        </h2>
+        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Welcome Back 👋</h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
             <input
               type="email"
               name="email"
@@ -68,9 +44,7 @@ export default function LoginPage() {
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}

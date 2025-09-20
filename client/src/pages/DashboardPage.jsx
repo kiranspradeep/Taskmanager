@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { FaHome, FaPlusCircle, FaChartLine, FaUserCircle, FaSignOutAlt } from "react-icons/fa";
 import TaskList from "../components/TaskList";
 import Progression from "../components/Progression";
 import Profile from "../components/Profile";
+import api from "../utils/api"; // <- import api
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
@@ -16,20 +16,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchDashboard = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return (window.location.href = "/login");
-
       try {
         setLoading(true);
-        const resUser = await axios.get("http://localhost:5000/api/dashboard", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+
+        const resUser = await api.get("/dashboard");
         if (resUser?.data?.user) setUser(resUser.data.user);
         else window.location.href = "/login";
 
-        const resTasks = await axios.get("http://localhost:5000/api/tasks", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const resTasks = await api.get("/tasks");
         setTasks(resTasks?.data || []);
       } catch (err) {
         console.error(err);
@@ -51,17 +45,13 @@ export default function DashboardPage() {
     setIsModalOpen(false);
     setNewTask({ title: "", description: "", priority: "Medium", dueDate: "" });
   };
-
   const handleTaskChange = (e) => setNewTask({ ...newTask, [e.target.name]: e.target.value });
 
   const handleTaskSubmit = async (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return alert("Task title is required!");
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post("http://localhost:5000/api/tasks", newTask, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.post("/tasks", newTask);
       setTasks([res.data, ...tasks]);
       handleModalClose();
     } catch (err) {
@@ -72,12 +62,7 @@ export default function DashboardPage() {
   const toggleTask = async (id) => {
     const task = tasks.find((t) => t._id === id);
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.put(
-        `http://localhost:5000/api/tasks/${id}`,
-        { completed: !task.completed },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.put(`/tasks/${id}`, { completed: !task.completed });
       setTasks(tasks.map((t) => (t._id === id ? res.data : t)));
     } catch (err) {
       console.error(err);
@@ -86,10 +71,7 @@ export default function DashboardPage() {
 
   const deleteTask = async (id) => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/tasks/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/tasks/${id}`);
       setTasks(tasks.filter((t) => t._id !== id));
     } catch (err) {
       console.error(err);

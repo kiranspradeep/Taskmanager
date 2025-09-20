@@ -1,11 +1,11 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../utils/api"; // ✅ centralized axios
 
 export default function Profile({ user, tasks, setUser }) {
   if (!user) return null;
 
-  const completedTasks = tasks?.filter(t => t.completed).length || 0;
-  const pendingTasks = tasks?.filter(t => !t.completed).length || 0;
+  const completedTasks = tasks?.filter((t) => t.completed).length || 0;
+  const pendingTasks = tasks?.filter((t) => !t.completed).length || 0;
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
@@ -14,27 +14,26 @@ export default function Profile({ user, tasks, setUser }) {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handlePasswordChange = (e) => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
 
   const handleSave = async () => {
     if (!formData.name.trim() || !formData.email.trim()) return alert("Name and email are required!");
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.put(
-        "http://localhost:5000/api/profile",
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.put("/profile", formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (setUser) setUser(res.data);
       setIsEditOpen(false);
       alert("Profile updated successfully!");
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Failed to update profile.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const handlePasswordChange = (e) => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
 
   const handlePasswordSave = async () => {
     const { oldPassword, newPassword, confirmPassword } = passwordData;
@@ -43,8 +42,8 @@ export default function Profile({ user, tasks, setUser }) {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.put(
-        "http://localhost:5000/api/profile/password",
+      await api.put(
+        "/profile/password",
         { oldPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -54,7 +53,9 @@ export default function Profile({ user, tasks, setUser }) {
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Failed to change password.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -99,12 +100,27 @@ export default function Profile({ user, tasks, setUser }) {
               className="absolute top-3 right-3 text-white hover:text-gray-200 text-lg font-bold">✖</button>
             <h2 className="text-2xl font-bold mb-4 text-white text-center">Edit Profile</h2>
             <div className="flex flex-col gap-4">
-              <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Name"
-                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition" />
-              <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email"
-                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition" />
-              <button onClick={handleSave} disabled={loading}
-                className="w-full bg-white/30 text-white px-4 py-2 rounded-lg hover:bg-white/50 transition disabled:opacity-50">
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Name"
+                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition"
+              />
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Email"
+                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition"
+              />
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                className="w-full bg-white/30 text-white px-4 py-2 rounded-lg hover:bg-white/50 transition disabled:opacity-50"
+              >
                 {loading ? "Saving..." : "Save Changes"}
               </button>
             </div>
@@ -121,14 +137,35 @@ export default function Profile({ user, tasks, setUser }) {
               className="absolute top-3 right-3 text-white hover:text-gray-200 text-lg font-bold">✖</button>
             <h2 className="text-2xl font-bold mb-4 text-white text-center">Change Password</h2>
             <div className="flex flex-col gap-4">
-              <input type="password" name="oldPassword" value={passwordData.oldPassword} onChange={handlePasswordChange} placeholder="Old Password"
-                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-red-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition" />
-              <input type="password" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} placeholder="New Password"
-                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-red-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition" />
-              <input type="password" name="confirmPassword" value={passwordData.confirmPassword} onChange={handlePasswordChange} placeholder="Confirm New Password"
-                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-red-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition" />
-              <button onClick={handlePasswordSave} disabled={loading}
-                className="w-full bg-white/30 text-white px-4 py-2 rounded-lg hover:bg-white/50 transition disabled:opacity-50">
+              <input
+                type="password"
+                name="oldPassword"
+                value={passwordData.oldPassword}
+                onChange={handlePasswordChange}
+                placeholder="Old Password"
+                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-red-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition"
+              />
+              <input
+                type="password"
+                name="newPassword"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                placeholder="New Password"
+                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-red-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition"
+              />
+              <input
+                type="password"
+                name="confirmPassword"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                placeholder="Confirm New Password"
+                className="w-full px-4 py-2 border border-white/40 rounded-lg focus:ring-2 focus:ring-red-300 focus:outline-none bg-white/20 text-white placeholder-white/70 transition"
+              />
+              <button
+                onClick={handlePasswordSave}
+                disabled={loading}
+                className="w-full bg-white/30 text-white px-4 py-2 rounded-lg hover:bg-white/50 transition disabled:opacity-50"
+              >
                 {loading ? "Saving..." : "Change Password"}
               </button>
             </div>

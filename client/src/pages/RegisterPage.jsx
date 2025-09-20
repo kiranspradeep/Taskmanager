@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link,useNavigate } from "react-router-dom";
-
+import { Link, useNavigate } from "react-router-dom";
+import api from "../utils/api"; // ✅ centralized axios
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -11,67 +11,43 @@ export default function RegisterPage() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-// inside your component
-const navigate = useNavigate();
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (formData.password !== formData.confirmPassword) {
-    alert("Passwords do not match!");
-    return;
-  }
-
-  try {
-    const res = await fetch("http://localhost:5000/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      const res = await api.post("/auth/register", {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      alert("Registered successfully! Please log in.");
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
       });
-      navigate("/login"); // ✅ redirect to login page
-    } else {
-      alert(data.message || "Registration failed");
-    }
-  } catch (error) {
-    console.error(error);
-  }
-};
 
+      alert("Registered successfully! Please log in.");
+      setFormData({ name: "", email: "", password: "", confirmPassword: "" });
+      navigate("/login");
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Registration failed. Try again!");
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-400 via-blue-500 to-purple-600">
       <div className="bg-white shadow-lg rounded-2xl w-full max-w-md p-8">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
-          Create an Account 🚀
-        </h2>
+        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Create an Account 🚀</h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Name</label>
             <input
               type="text"
               name="name"
@@ -85,9 +61,7 @@ const handleSubmit = async (e) => {
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
             <input
               type="email"
               name="email"
@@ -101,9 +75,7 @@ const handleSubmit = async (e) => {
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -126,9 +98,7 @@ const handleSubmit = async (e) => {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Confirm Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
             <input
               type={showPassword ? "text" : "password"}
               name="confirmPassword"
@@ -152,9 +122,7 @@ const handleSubmit = async (e) => {
         {/* Login link */}
         <p className="text-sm text-center text-gray-600 mt-5">
           Already have an account?{" "}
-          <Link to="/login" className="text-green-600 hover:underline">
-            Login
-          </Link>
+          <Link to="/login" className="text-green-600 hover:underline">Login</Link>
         </p>
       </div>
     </div>
