@@ -43,7 +43,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   const handleAddTask = () => setIsModalOpen(true);
