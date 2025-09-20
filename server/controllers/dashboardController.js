@@ -8,7 +8,7 @@ const getDashboard = async (req, res) => {
   try {
     // console.log("hitted dashboard");
     
-    console.log("User ID:", req.user._id);
+    // console.log("User ID:", req.user._id);
     const user = await User.findById(req.user._id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
