@@ -17,7 +17,6 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  console.log(formData,"full formdata");
     try {
       const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
@@ -26,8 +25,6 @@ export default function LoginPage() {
         
         
       });
-      //log formfada
-        console.log(formData,"formdata");
 
       const data = await res.json();
 

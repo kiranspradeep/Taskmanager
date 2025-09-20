@@ -3,6 +3,7 @@ const cors =require( "cors");
 const dotenv =require( "dotenv");
 const connectDB =require( "./config/db.js");
 const authRoutes =require( "./routes/authRoutes.js");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 dotenv.config();
 const app = express();
@@ -16,6 +17,7 @@ connectDB();
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Server
 const PORT = process.env.PORT || 5000;
